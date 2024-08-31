@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Birthday Fireworks</title>
+  <style>
+    body {
+      margin: 0;
+      background: #020202;
+      cursor: crosshair;
+      overflow: hidden; /* Prevents scrollbars from appearing */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      width: 100vw; /* Ensures full viewport width */
+    }
+
+    canvas {
+      display: block; /* Ensures canvas takes up the full viewport */
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0; /* Ensures canvas is behind other elements */
+    }
+
+    .message {
+      position: absolute;
+      color: #fff;
+      font-family: "Source Sans Pro", sans-serif;
+      text-align: center;
+      z-index: 1; /* Ensures text is above the canvas */
+      line-height: 1.2; /* Adjusts line height for better readability */
+      animation: fadeInOut 15s ease-in-out infinite;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .message h1, .message h2 {
+      margin: 0;
+      padding: 0;
+    }
+
+    .message h1 {
+      font-size: 2em;
+      font-weight: 900;
+    }
+
+    .message h2 {
+      font-size: 1.5em;
+      font-weight: 700;
+      margin-top: 5px; /* Space between the lines */
+    }
+
+    .message p {
+      font-size: 1.2em;
+      font-weight: 500;
+      margin-top: 10px; /* Space between the paragraphs */
+    }
+
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0; }
+      25%, 75% { opacity: 1; }
+    }
+
+    @media (max-width: 600px) {
+      .message h1 {
+        font-size: 1.5em; /* Adjust font size for smaller screens */
+      }
+      .message h2 {
+        font-size: 1.2em; /* Adjust font size for smaller screens */
+      }
+      .message p {
+        font-size: 1em; /* Adjust font size for smaller screens */
+      }
+    }
+
+    @media (max-width: 400px) {
+      .message h1 {
+        font-size: 1.2em; /* Further reduce font size for very small screens */
+      }
+      .message h2 {
+        font-size: 1em; /* Further reduce font size for very small screens */
+      }
+      .message p {
+        font-size: 0.8em; /* Further reduce font size for very small screens */
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="message">
+    <div>
+      <h1>Happiest Birthday Shruti<br>Love You</h1>
+      <h2>My Future Wifey</h2>
+      <h2>My Cutie Shukla</h2>
+      <p>May Mahadev bless you with every happiness 💖💖</p>
+      <p>Always keep smiling and always remain happy</p>
+      <p>Meri Girlfriend Ji !!!!!!!!!!</p>
+    </div>
+  </div>
+  
+  <canvas id="birthday"></canvas>
+
+  <script>
+    const PI2 = Math.PI * 2;
+    const random = (min, max) => Math.random() * (max - min + 1) + min | 0;
+    const timestamp = () => new Date().getTime();
+
+    class Birthday {
+      constructor() {
+        this.resize();
+        this.fireworks = [];
+        this.counter = 0;
+      }
+
+      resize() {
+        this.width = canvas.width = window.innerWidth;
+        const center = this.width / 2 | 0;
+        this.spawnA = center - center / 4 | 0;
+        this.spawnB = center + center / 4 | 0;
+
+        this.height = canvas.height = window.innerHeight;
+        this.spawnC = this.height * 0.1;
+        this.spawnD = this.height * 0.5;
+      }
+
+      onClick(evt) {
+        const x = evt.clientX || evt.touches && evt.touches[0].pageX;
+        const y = evt.clientY || evt.touches && evt.touches[0].pageY;
+
+        const count = random(3, 5);
+        for (let i = 0; i < count; i++) {
+          this.fireworks.push(new Firework(
+            random(this.spawnA, this.spawnB),
+            this.height,
+            x,
+            y,
+            random(0, 260),
+            random(30, 110)
+          ));
+        }
+        this.counter = -1;
+      }
+
+      update(delta) {
+        ctx.clearRect(0, 0, this.width, this.height);
+
+        ctx.globalCompositeOperation = 'lighter';
+        this.fireworks.forEach(firework => firework.update(delta));
+
+        this.counter += delta * 3;
+        if (this.counter >= 1) {
+          this.fireworks.push(new Firework(
+            random(this.spawnA, this.spawnB),
+            this.height,
+            random(0, this.width),
+            random(this.spawnC, this.spawnD),
+            random(0, 360),
+            random(30, 110)
+          ));
+          this.counter = 0;
+        }
+
+        if (this.fireworks.length > 1000) {
+          this.fireworks = this.fireworks.filter(firework => !firework.dead);
+        }
+      }
+    }
+
+    class Firework {
+      constructor(x, y, targetX, targetY, shade, offsprings) {
+        this.dead = false;
+        this.offsprings = offsprings;
+        this.x = x;
+        this.y = y;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.shade = shade;
+        this.history = [];
+      }
+
+      update(delta) {
+        if (this.dead) return;
+
+        const xDiff = this.targetX - this.x;
+        const yDiff = this.targetY - this.y;
+        if (Math.abs(xDiff) > 3 || Math.abs(yDiff) > 3) {
+          this.x += xDiff * 2 * delta;
+          this.y += yDiff * 2 * delta;
+          this.history.push({ x: this.x, y: this.y });
+
+          if (this.history.length > 20) this.history.shift();
+        } else {
+          if (this.offsprings && !this.madeChilds) {
+            const babies = this.offsprings / 2;
+            for (let i = 0; i < babies; i++) {
+              const targetX = this.x + this.offsprings * Math.cos(PI2 * i / babies) | 0;
+              const targetY = this.y + this.offsprings * Math.sin(PI2 * i / babies) | 0;
+              birthday.fireworks.push(new Firework(this.x, this.y, targetX, targetY, this.shade, 0));
+            }
+          }
+          this.madeChilds = true;
+          this.history.shift();
+        }
+
+        if (this.history.length === 0) this.dead = true;
+        else if (this.offsprings) {
+          this.history.forEach((point, i) => {
+            ctx.beginPath();
+            ctx.fillStyle = `hsl(${this.shade},100%,${i}%)`;
+            ctx.arc(point.x, point.y, 1, 0, PI2, false);
+            ctx.fill();
+          });
+        } else {
+          ctx.beginPath();
+          ctx.fillStyle = `hsl(${this.shade},100%,50%)`;
+          ctx.arc(this.x, this.y, 1, 0, PI2, false);
+          ctx.fill();
+        }
+      }
+    }
+
+    const canvas = document.getElementById('birthday');
+    const ctx = canvas.getContext('2d');
+
+    let then = timestamp();
+    const birthday = new Birthday();
+
+    window.onresize = () => birthday.resize();
+    document.onclick = evt => birthday.onClick(evt);
+    document.ontouchstart = evt => birthday.onClick(evt);
+
+    (function loop() {
+      requestAnimationFrame(loop);
+      const now = timestamp();
+      const delta = now - then;
+      then = now;
+      birthday.update(delta / 1000);
+    })();
+  </script>
+</body>
+</html>
